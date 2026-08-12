@@ -25,8 +25,30 @@ export const generateCertificatePdfBlob = async (student: StudentRecord): Promis
 
   // Remove/cover the sample dynamic content from the background image.
   ctx.fillStyle = '#ffffff';
-  // expand the cover area to ensure any background text is hidden
-  ctx.fillRect(img.width * 0.06, img.height * 0.18, img.width * 0.88, img.height * 0.36);
+  const overlayX = img.width * 0.06;
+  const overlayY = img.height * 0.18;
+  const overlayWidth = img.width * 0.88;
+  const overlayHeight = img.height * 0.50;
+  const overlayRadius = overlayHeight * 0.4;
+
+  if (typeof ctx.roundRect === 'function') {
+    ctx.beginPath();
+    ctx.roundRect(overlayX, overlayY, overlayWidth, overlayHeight, overlayRadius);
+    ctx.fill();
+  } else {
+    ctx.beginPath();
+    ctx.moveTo(overlayX + overlayRadius, overlayY);
+    ctx.lineTo(overlayX + overlayWidth - overlayRadius, overlayY);
+    ctx.quadraticCurveTo(overlayX + overlayWidth, overlayY, overlayX + overlayWidth, overlayY + overlayRadius);
+    ctx.lineTo(overlayX + overlayWidth, overlayY + overlayHeight - overlayRadius);
+    ctx.quadraticCurveTo(overlayX + overlayWidth, overlayY + overlayHeight, overlayX + overlayWidth - overlayRadius, overlayY + overlayHeight);
+    ctx.lineTo(overlayX + overlayRadius, overlayY + overlayHeight);
+    ctx.quadraticCurveTo(overlayX, overlayY + overlayHeight, overlayX, overlayY + overlayHeight - overlayRadius);
+    ctx.lineTo(overlayX, overlayY + overlayRadius);
+    ctx.quadraticCurveTo(overlayX, overlayY, overlayX + overlayRadius, overlayY);
+    ctx.closePath();
+    ctx.fill();
+  }
 
   ctx.textAlign = 'center';
   ctx.fillStyle = navy;

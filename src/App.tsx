@@ -56,31 +56,35 @@ function App() {
   };
 
   useEffect(() => {
-    // Load default template from extracted_media/Temp.docx (preferred), fallback to /Temp.docx
+    const isValidDocxResponse = (response: Response, blob: Blob) => {
+      const contentType = response.headers.get('content-type') || blob.type || '';
+      const isHtml = contentType.includes('html');
+      const isDocx = contentType.includes('offic') || contentType.includes('application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+      return response.ok && !isHtml && (isDocx || blob.size > 10_000);
+    };
+
     const loadDefaultTemplate = async () => {
-      try {
-        const primary = await fetch('/extracted_media/Temp.docx');
-        if (primary.ok) {
-          const blob = await primary.blob();
-          const file = new File([blob], 'Temp.docx', { type: blob.type || 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+      const attempts = ['/extracted_media/Temp.docx', '/Temp.docx'];
+      for (const url of attempts) {
+        try {
+          const response = await fetch(url);
+          const blob = await response.blob();
+          if (!isValidDocxResponse(response, blob)) {
+            continue;
+          }
+          const file = new File([blob], 'Temp.docx', {
+            type: blob.type || 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+          });
           setTemplateFile(file);
           setTemplateFileName(file.name);
           return;
+        } catch (e) {
+          // ignore invalid template fetches; proceed to next attempt
         }
-      } catch (e) {
-        // ignore
       }
-      try {
-        const fallback = await fetch('/Temp.docx');
-        if (fallback.ok) {
-          const blob = await fallback.blob();
-          const file = new File([blob], 'Temp.docx', { type: blob.type || 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
-          setTemplateFile(file);
-          setTemplateFileName(file.name);
-        }
-      } catch (e) {
-        // ignore
-      }
+      setTemplateFile(null);
+      setTemplateFileName('');
+      setStatusMessage('Default Temp.docx template not found; using PDF generation fallback.');
     };
     loadDefaultTemplate();
   }, []);
