@@ -10,7 +10,7 @@ interface StudentTableProps {
 const StudentTable = ({ students, selectedIndex, onSelect, isGenerating }: StudentTableProps) => (
   <div className="table-card">
     <div className="section-header">
-      <h2>STEP 2 - STUDENT DETAILS</h2>
+      <h2>STEP 4 - STUDENT DETAILS</h2>
       <p>Imported student data</p>
     </div>
     <div className="table-wrapper">

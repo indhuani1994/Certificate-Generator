@@ -1,25 +1,30 @@
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState } from 'react';
 import Header from './components/Header/Header';
 import ExcelUploader from './components/ExcelUploader/ExcelUploader';
 import StudentTable from './components/StudentTable/StudentTable';
 import CertificatePreview from './components/CertificatePreview/CertificatePreview';
 import DownloadButtons from './components/DownloadButtons/DownloadButtons';
 import ResetButton from './components/ResetButton/ResetButton';
+import TemplateSelector from './components/TemplateSelector/TemplateSelector';
+import ContentSelector from './components/ContentSelector/ContentSelector';
 import { parseExcelFile } from './services/excelParser';
-import { CertificateData, StudentRecord, ValidationResult } from './types';
+import { CertificateData, StudentRecord, ValidationResult, Template, TemplateContent } from './types';
 import { validateRecords } from './utils/validationUtils';
 import { formatDuration, formatDisplayDate } from './utils/dateUtils';
 import { generateCertificatePdf, generateCertificatePdfBlob } from './services/certificateGenerator';
-import { fillTemplateDocxBlob } from './services/docxTemplateService';
 import { generateZip } from './services/zipGenerator';
 import { saveAs } from 'file-saver';
+import { getAllTemplates } from './config/templateConfigs';
 import './styles/App.css';
 
 function App() {
+  const [templates] = useState<Template[]>(getAllTemplates());
+  const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
+  const [selectedContent, setSelectedContent] = useState<TemplateContent | null>(null);
+  const [selectedContentId, setSelectedContentId] = useState<string | null>(null);
+  const [selectedContentTemplateId, setSelectedContentTemplateId] = useState<string | null>(null);
   const [students, setStudents] = useState<StudentRecord[]>([]);
   const [validation, setValidation] = useState<ValidationResult | null>(null);
-  const [templateFile, setTemplateFile] = useState<File | null>(null);
-  const [templateFileName, setTemplateFileName] = useState('');
   const [fileName, setFileName] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [statusMessage, setStatusMessage] = useState('');
@@ -29,6 +34,67 @@ function App() {
 
   const hasValidRecords = useMemo(() => students.some((r) => r.status === 'Valid'), [students]);
   const selectedStudent = students[selectedIndex] || null;
+  const selectedBodyContentId = selectedContentId?.split(':').slice(1).join(':');
+
+  const handleSelectTemplate = (template: Template) => {
+    setSelectedTemplate(template);
+    setSelectedContent(null);
+    setSelectedContentId(null);
+    setSelectedContentTemplateId(null);
+    setErrorMessage('');
+  };
+
+  const handleUploadTemplate = (file: File) => {
+    if (!file.type.startsWith('image/')) {
+      setErrorMessage('Please upload a PNG, JPG, JPEG, or WEBP image.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const defaultTemplate = templates[0];
+      const uploadedTemplate: Template = {
+        id: 'uploaded-template',
+        name: file.name,
+        imagePath: String(reader.result),
+        contents: defaultTemplate.contents
+      };
+      handleSelectTemplate(uploadedTemplate);
+      setStatusMessage(`Custom template "${file.name}" selected.`);
+    };
+    reader.onerror = () => setErrorMessage('Could not read the template image.');
+    reader.readAsDataURL(file);
+  };
+
+  const handleSelectContent = (contentId: string, content: TemplateContent, sourceTemplateId: string) => {
+    setSelectedContentId(contentId);
+    // Body text can come from any listed content, while layout stays tied to
+    // the certificate template selected by the user.
+    const templateFields = selectedTemplate
+      ? Object.values(selectedTemplate.contents)[0]?.fields
+      : content.fields;
+    setSelectedContent({ ...content, fields: templateFields || content.fields });
+    setSelectedContentTemplateId(selectedTemplate?.id || sourceTemplateId);
+    setErrorMessage('');
+  };
+
+  const handleEnterManualContent = (bodyTemplate: string) => {
+    if (!selectedTemplate || !bodyTemplate.trim()) {
+      setSelectedContent(null);
+      setSelectedContentId(null);
+      setSelectedContentTemplateId(null);
+      return;
+    }
+    const defaultFields = Object.values(selectedTemplate.contents)[0]?.fields;
+    setSelectedContent({
+      description: 'Custom Body Content',
+      bodyTemplate,
+      fields: defaultFields || {}
+    });
+    setSelectedContentId('custom');
+    setSelectedContentTemplateId(selectedTemplate.id);
+    setErrorMessage('');
+  };
 
   const handleFileUpload = async (file: File) => {
     setErrorMessage('');
@@ -55,40 +121,6 @@ function App() {
     }
   };
 
-  useEffect(() => {
-    const isValidDocxResponse = (response: Response, blob: Blob) => {
-      const contentType = response.headers.get('content-type') || blob.type || '';
-      const isHtml = contentType.includes('html');
-      const isDocx = contentType.includes('offic') || contentType.includes('application/vnd.openxmlformats-officedocument.wordprocessingml.document');
-      return response.ok && !isHtml && (isDocx || blob.size > 10_000);
-    };
-
-    const loadDefaultTemplate = async () => {
-      const attempts = ['/extracted_media/Temp.docx', '/Temp.docx'];
-      for (const url of attempts) {
-        try {
-          const response = await fetch(url);
-          const blob = await response.blob();
-          if (!isValidDocxResponse(response, blob)) {
-            continue;
-          }
-          const file = new File([blob], 'Temp.docx', {
-            type: blob.type || 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-          });
-          setTemplateFile(file);
-          setTemplateFileName(file.name);
-          return;
-        } catch (e) {
-          // ignore invalid template fetches; proceed to next attempt
-        }
-      }
-      setTemplateFile(null);
-      setTemplateFileName('');
-      setStatusMessage('Default Temp.docx template not found; using PDF generation fallback.');
-    };
-    loadDefaultTemplate();
-  }, []);
-
   const handleGenerateAll = async () => {
     if (!validation || validation.errorCount > 0) {
       setErrorMessage('Resolve validation errors before generating certificates.');
@@ -98,6 +130,10 @@ function App() {
       setErrorMessage('No valid students to generate certificates for.');
       return;
     }
+    if (!selectedTemplate || !selectedContent) {
+      setErrorMessage('Please select a template and content before generating.');
+      return;
+    }
     setIsGenerating(true);
     setErrorMessage('');
     setStatusMessage('Generating certificates...');
@@ -105,27 +141,18 @@ function App() {
     const validStudents = students.filter((r) => r.status === 'Valid');
     try {
       const outFiles: { name: string; blob: Blob }[] = [];
-      if (templateFile) {
-        for (let i = 0; i < validStudents.length; i += 1) {
-          const student = validStudents[i];
-          setProgress(Math.round(((i + 1) / validStudents.length) * 100));
-          const blob = await fillTemplateDocxBlob(templateFile, {
-            name: student.name,
-            regNo: student.regNo,
-            course: student.course,
-            startDate: student.startDateFormatted,
-            endDate: student.endDateFormatted,
-            duration: student.duration
-          });
-          outFiles.push({ name: student.fileName.replace(/\.pdf$/i, '.docx'), blob });
-        }
-      } else {
-        for (let i = 0; i < validStudents.length; i += 1) {
-          const student = validStudents[i];
-          setProgress(Math.round(((i + 1) / validStudents.length) * 100));
-          const blob = await generateCertificatePdfBlob(student);
-          outFiles.push({ name: student.fileName, blob });
-        }
+      for (let i = 0; i < validStudents.length; i += 1) {
+        const student = validStudents[i];
+        setProgress(Math.round(((i + 1) / validStudents.length) * 100));
+        const blob = await generateCertificatePdfBlob(
+          student,
+          selectedContent.fields,
+          selectedTemplate.imagePath,
+          selectedContentTemplateId || selectedTemplate.id,
+          selectedBodyContentId || undefined,
+          selectedContent.bodyTemplate
+        );
+        outFiles.push({ name: student.fileName, blob });
       }
       await generateZip(outFiles);
       setStatusMessage(`${validStudents.length} certificates generated successfully.`);
@@ -138,22 +165,19 @@ function App() {
   };
 
   const handleDownloadSelected = async () => {
-    if (!selectedStudent) return;
+    if (!selectedStudent || !selectedTemplate || !selectedContent) return;
     setErrorMessage('');
     try {
-      if (templateFile) {
-        const blob = await fillTemplateDocxBlob(templateFile, {
-          name: selectedStudent.name,
-          regNo: selectedStudent.regNo,
-          course: selectedStudent.course,
-          startDate: selectedStudent.startDateFormatted,
-          endDate: selectedStudent.endDateFormatted,
-          duration: selectedStudent.duration
-        });
-        saveAs(blob, selectedStudent.fileName.replace(/\.pdf$/i, '.docx'));
-      } else {
-        await generateCertificatePdf(selectedStudent);
-      }
+      // Generate from the same selected template/content used by the preview.
+      const blob = await generateCertificatePdf(
+        selectedStudent,
+        selectedContent.fields,
+        selectedTemplate.imagePath,
+        selectedContentTemplateId || selectedTemplate.id,
+        selectedBodyContentId || undefined,
+        selectedContent.bodyTemplate
+      );
+      saveAs(blob, selectedStudent.fileName);
     } catch (e) {
       setErrorMessage(e instanceof Error ? e.message : 'Download failed.');
     }
@@ -170,16 +194,41 @@ function App() {
     setErrorMessage('');
     setProgress(null);
     setIsGenerating(false);
-    // preserve templateFile (default Temp.docx)
   };
 
   return (
     <div className="app-shell">
       <Header />
       <main className="main-content">
+        <section className="template-section">
+          <TemplateSelector
+            templates={templates}
+            selectedTemplate={selectedTemplate}
+            onSelectTemplate={handleSelectTemplate}
+            onUploadTemplate={handleUploadTemplate}
+          />
+        </section>
+
+        <section className="content-section">
+          <ContentSelector
+            selectedTemplate={selectedTemplate}
+            templates={templates}
+            selectedContent={selectedContent}
+            selectedContentId={selectedContentId}
+            onSelectContent={handleSelectContent}
+            onEnterManualContent={handleEnterManualContent}
+          />
+        </section>
+
         <section className="upload-section">
-          <ExcelUploader onUpload={handleFileUpload} fileName={fileName} studentCount={students.length} statusMessage={statusMessage} validation={validation} />
-          
+          <ExcelUploader 
+            onUpload={handleFileUpload} 
+            fileName={fileName} 
+            studentCount={students.length} 
+            statusMessage={statusMessage} 
+            validation={validation}
+            disabled={!selectedTemplate || !selectedContent}
+          />
         </section>
 
         <section className="details-section">
@@ -187,7 +236,14 @@ function App() {
         </section>
 
         <section className="preview-section">
-          <CertificatePreview student={selectedStudent} />
+          <CertificatePreview 
+            student={selectedStudent} 
+            certificateFields={selectedContent?.fields}
+            templateImagePath={selectedTemplate?.imagePath}
+            templateId={selectedContentTemplateId || selectedTemplate?.id}
+          contentId={selectedBodyContentId || undefined}
+          bodyTemplate={selectedContent?.bodyTemplate}
+          />
         </section>
 
         <section className="actions-section">

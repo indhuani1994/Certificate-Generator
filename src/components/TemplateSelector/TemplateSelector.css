@@ -1,0 +1,91 @@
+.template-selector-container {
+  padding: 20px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background-color: #f9f9f9;
+  margin-bottom: 20px;
+}
+
+.template-selector-container h2 {
+  margin-top: 0;
+  color: #333;
+  font-size: 18px;
+  margin-bottom: 20px;
+}
+
+.template-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+}
+
+.template-card {
+  border: 3px solid #ddd;
+  border-radius: 8px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background-color: white;
+}
+
+.template-card:hover {
+  transform: translateY(-5px);
+  border-color: #4CAF50;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.template-card.selected {
+  border-color: #4CAF50;
+  background-color: #f0f9f0;
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+}
+
+.template-preview {
+  width: 100%;
+  height: 250px;
+  object-fit: cover;
+  display: block;
+}
+
+.template-name {
+  padding: 12px;
+  text-align: center;
+  font-weight: 600;
+  color: #333;
+  background-color: #fafafa;
+  font-size: 16px;
+}
+
+.template-card.selected .template-name {
+  background-color: #e8f5e9;
+  color: #2e7d32;
+}
+
+.template-upload-card {
+  min-height: 250px;
+  border: 3px dashed #aaa;
+  border-radius: 8px;
+  cursor: pointer;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.template-upload-card:hover {
+  border-color: #4CAF50;
+  background: #f8fff8;
+}
+
+.template-upload-card input {
+  display: none;
+}
+
+.template-upload-icon {
+  color: #4CAF50;
+  font-size: 56px;
+  font-weight: 300;
+  line-height: 1;
+}

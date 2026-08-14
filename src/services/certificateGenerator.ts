@@ -1,7 +1,8 @@
 import { jsPDF } from 'jspdf';
 import { saveAs } from 'file-saver';
-import { StudentRecord } from '../types';
+import { StudentRecord, FieldPosition } from '../types';
 import certificateBackground from '../assets/Capture.JPG';
+import { getBodyText } from '../config/templateConfigs';
 
 const loadImage = (src: string): Promise<HTMLImageElement> =>
   new Promise((resolve, reject) => {
@@ -11,8 +12,30 @@ const loadImage = (src: string): Promise<HTMLImageElement> =>
     img.src = src;
   });
 
-export const generateCertificatePdfBlob = async (student: StudentRecord): Promise<Blob> => {
-  const img = await loadImage(certificateBackground);
+// Calculate duration in months
+const getDurationMonths = (duration: string): number => {
+  // Duration format: "01/03/2026 - 31/05/2026"
+  const parts = duration.split(' - ');
+  if (parts.length === 2) {
+    const [startStr, endStr] = parts;
+    const startDate = new Date(startStr.split('/').reverse().join('-'));
+    const endDate = new Date(endStr.split('/').reverse().join('-'));
+    const months = (endDate.getFullYear() - startDate.getFullYear()) * 12 + (endDate.getMonth() - startDate.getMonth());
+    return Math.max(1, months);
+  }
+  return 1;
+};
+
+export const generateCertificatePdfBlob = async (
+  student: StudentRecord,
+  fields?: Record<string, FieldPosition>,
+  imagePath?: string,
+  templateId?: string,
+  contentId?: string,
+  customBodyTemplate?: string
+): Promise<Blob> => {
+  const imageToUse = imagePath || certificateBackground;
+  const img = await loadImage(imageToUse);
   const canvas = document.createElement('canvas');
   canvas.width = img.width;
   canvas.height = img.height;
@@ -20,35 +43,29 @@ export const generateCertificatePdfBlob = async (student: StudentRecord): Promis
   if (!ctx) throw new Error('Canvas initialization failed.');
 
   ctx.drawImage(img, 0, 0, img.width, img.height);
+  
   const navy = '#0D095C';
   const gold = '#A27E16';
 
-  // Remove/cover the sample dynamic content from the background image.
-  ctx.fillStyle = '#ffffff';
-  const overlayX = img.width * 0.06;
-  const overlayY = img.height * 0.18;
-  const overlayWidth = img.width * 0.88;
-  const overlayHeight = img.height * 0.50;
-  const overlayRadius = overlayHeight * 0.4;
-
-  if (typeof ctx.roundRect === 'function') {
-    ctx.beginPath();
-    ctx.roundRect(overlayX, overlayY, overlayWidth, overlayHeight, overlayRadius);
-    ctx.fill();
-  } else {
-    ctx.beginPath();
-    ctx.moveTo(overlayX + overlayRadius, overlayY);
-    ctx.lineTo(overlayX + overlayWidth - overlayRadius, overlayY);
-    ctx.quadraticCurveTo(overlayX + overlayWidth, overlayY, overlayX + overlayWidth, overlayY + overlayRadius);
-    ctx.lineTo(overlayX + overlayWidth, overlayY + overlayHeight - overlayRadius);
-    ctx.quadraticCurveTo(overlayX + overlayWidth, overlayY + overlayHeight, overlayX + overlayWidth - overlayRadius, overlayY + overlayHeight);
-    ctx.lineTo(overlayX + overlayRadius, overlayY + overlayHeight);
-    ctx.quadraticCurveTo(overlayX, overlayY + overlayHeight, overlayX, overlayY + overlayHeight - overlayRadius);
-    ctx.lineTo(overlayX, overlayY + overlayRadius);
-    ctx.quadraticCurveTo(overlayX, overlayY, overlayX + overlayRadius, overlayY);
-    ctx.closePath();
-    ctx.fill();
-  }
+  // Use provided fields or fall back to defaults
+  const fieldPositions = fields || {
+    name: {
+      left: '50%',
+      top: '24%',
+      fontSize: 'bold 36px Georgia',
+      color: navy,
+      textAlign: 'center' as const,
+      width: '80%'
+    },
+    regNo: {
+      left: '50%',
+      top: '31%',
+      fontSize: 'bold 28px Georgia',
+      color: gold,
+      textAlign: 'center' as const,
+      width: '74%'
+    }
+  };
 
   ctx.textAlign = 'center';
   ctx.fillStyle = navy;
@@ -66,8 +83,22 @@ export const generateCertificatePdfBlob = async (student: StudentRecord): Promis
   ctx.fillText(`(REG. NO: ${student.regNo})`, img.width * 0.5, img.height * 0.335);
 
   ctx.fillStyle = navy;
-  ctx.font = '32px Georgia';
-  const body = `has successfully completed the ${student.course} program at our Madurai center, conducted by Scope Tech Software Solution, with a duration from ${student.startDateFormatted} to ${student.endDateFormatted}. The participant's performance during this course was outstanding and exceeded our expectations.`;
+  ctx.font = '22px Georgia';
+  
+  // Generate body text based on template or use default
+  const body = templateId && contentId
+    ? getBodyText(
+        templateId,
+        contentId,
+        student.name,
+        student.course,
+        student.startDateFormatted,
+        student.endDateFormatted,
+        getDurationMonths(student.duration),
+        customBodyTemplate
+      )
+    : `has successfully completed the ${student.course} program at our Madurai center, conducted by Scope Tech Software Solution, with a duration from ${student.startDateFormatted} to ${student.endDateFormatted}. The participant's performance during this course was outstanding and exceeded our expectations.`;
+  
   const maxWidth = img.width * 0.80;
   const lines: string[] = [];
   let line = '';
@@ -82,13 +113,20 @@ export const generateCertificatePdfBlob = async (student: StudentRecord): Promis
   });
   if (line) lines.push(line);
   // increase line spacing to accommodate larger font
-  lines.forEach((text, index) => ctx.fillText(text, img.width * 0.5, img.height * 0.405 + index * 44));
+  lines.forEach((text, index) => ctx.fillText(text, img.width * 0.5, img.height * 0.405 + index * 32));
 
   const pdf = new jsPDF({ orientation: 'landscape', unit: 'px', format: [img.width, img.height] });
   pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, img.width, img.height);
   return pdf.output('blob');
 };
 
-export const generateCertificatePdf = async (student: StudentRecord): Promise<void> => {
-  saveAs(await generateCertificatePdfBlob(student), student.fileName);
+export const generateCertificatePdf = async (
+  student: StudentRecord,
+  fields?: Record<string, FieldPosition>,
+  imagePath?: string,
+  templateId?: string,
+  contentId?: string,
+  customBodyTemplate?: string
+): Promise<Blob> => {
+  return generateCertificatePdfBlob(student, fields, imagePath, templateId, contentId, customBodyTemplate);
 };

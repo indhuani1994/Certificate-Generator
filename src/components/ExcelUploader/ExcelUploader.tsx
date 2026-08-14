@@ -6,9 +6,10 @@ interface ExcelUploaderProps {
   studentCount: number;
   statusMessage: string;
   validation: ValidationResult | null;
+  disabled?: boolean;
 }
 
-const ExcelUploader = ({ onUpload, fileName, studentCount, statusMessage, validation }: ExcelUploaderProps) => {
+const ExcelUploader = ({ onUpload, fileName, studentCount, statusMessage, validation, disabled }: ExcelUploaderProps) => {
   const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files?.[0]) {
       onUpload(event.target.files[0]);
@@ -16,14 +17,15 @@ const ExcelUploader = ({ onUpload, fileName, studentCount, statusMessage, valida
   };
 
   return (
-    <div className="uploader-card">
+    <div className={`uploader-card ${disabled ? 'disabled' : ''}`}>
       <div className="section-header">
-        <h2>STEP 1 - UPLOAD EXCEL</h2>
+        <h2>STEP 3 - UPLOAD EXCEL</h2>
         <p>Upload Excel File</p>
+        {disabled && <p className="disabled-notice">Please select a template and content first</p>}
       </div>
-      <label className="upload-button">
+      <label className={`upload-button ${disabled ? 'disabled' : ''}`}>
         Choose Excel File
-        <input type="file" accept=".xlsx,.xls" onChange={handleChange} />
+        <input type="file" accept=".xlsx,.xls" onChange={handleChange} disabled={disabled} />
       </label>
       <div className="upload-info">
         <div>

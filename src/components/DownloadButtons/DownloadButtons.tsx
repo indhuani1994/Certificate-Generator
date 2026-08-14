@@ -11,7 +11,7 @@ interface DownloadButtonsProps {
 const DownloadButtons = ({ disabled, onDownloadSelected, onDownloadAll, selectedStudent, progress }: DownloadButtonsProps) => (
   <div className="download-card">
     <div className="section-header">
-      <h2>STEP 4 - DOWNLOAD</h2>
+      <h2>STEP 6 - DOWNLOAD</h2>
       <p>Download certificates individually or in bulk.</p>
     </div>
     <div className="download-actions">
