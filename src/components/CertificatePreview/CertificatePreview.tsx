@@ -1,4 +1,4 @@
-import { StudentRecord, FieldPosition } from '../../types';
+import { StudentRecord, FieldPosition, SignatureImage } from '../../types';
 import certificateFields from '../../config/certificateFields';
 import certificateBackground from '../../assets/Capture.JPG';
 import { getBodyText } from '../../config/templateConfigs';
@@ -10,6 +10,7 @@ interface CertificatePreviewProps {
   templateId?: string;
   contentId?: string;
   bodyTemplate?: string;
+  signatures?: SignatureImage[];
 }
 
 const CertificatePreview = ({ 
@@ -18,7 +19,8 @@ const CertificatePreview = ({
   templateImagePath,
   templateId = 'certificate',
   contentId = 'standard',
-  bodyTemplate
+  bodyTemplate,
+  signatures = []
 }: CertificatePreviewProps) => {
   const fields = customFields || certificateFields;
   const imageSource = templateImagePath || certificateBackground;
@@ -77,6 +79,9 @@ const CertificatePreview = ({
           <p>   </p>
           <div className="certificate-text certificate2-body">
             {bodyText}
+          </div>
+          <div className="signature-overlay" style={{ '--signature-count': signatures.length } as React.CSSProperties}>
+            {signatures.map((signature) => <img key={signature.id} src={signature.dataUrl} alt={signature.name} />)}
           </div>
         </div>
       </div>

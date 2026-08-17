@@ -1,0 +1,13 @@
+.signature-selector { margin-top: 20px; padding: 20px; border: 1px solid #dce3f2; border-radius: 12px; background: #fff; }
+.signature-selector-heading { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+.signature-selector h2 { margin: 0; color: #333; font-size: 18px; }
+.signature-selector p { margin: 7px 0 0; color: #66728f; font-size: 14px; }
+.signature-upload-button { position: relative; flex-shrink: 0; padding: 11px 16px; border-radius: 9px; background: #1e2de7; color: white; cursor: pointer; font-weight: 600; }
+.signature-upload-button input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.signature-empty { padding: 12px 0 0; }
+.signature-list { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 18px; }
+.signature-item { display: grid; grid-template-columns: 80px minmax(80px, 140px); gap: 8px 10px; align-items: center; padding: 10px; border: 1px solid #e0e6f2; border-radius: 9px; background: #f8faff; }
+.signature-item img { width: 80px; height: 48px; object-fit: contain; background: white; border-radius: 4px; }
+.signature-item span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #34405f; font-size: 13px; }
+.signature-item button { grid-column: 1 / -1; padding: 7px 10px; font-size: 12px; background: #eef2ff; color: #1e2de7; }
+@media (max-width: 640px) { .signature-selector-heading { align-items: flex-start; flex-direction: column; } }

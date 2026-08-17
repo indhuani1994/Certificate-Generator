@@ -44,6 +44,12 @@ export interface TemplateContent {
   bodyTemplate?: string;
 }
 
+export interface SignatureImage {
+  id: string;
+  name: string;
+  dataUrl: string;
+}
+
 export interface Template {
   id: string;
   name: string;

@@ -1,6 +1,6 @@
 import { jsPDF } from 'jspdf';
 import { saveAs } from 'file-saver';
-import { StudentRecord, FieldPosition } from '../types';
+import { StudentRecord, FieldPosition, SignatureImage } from '../types';
 import certificateBackground from '../assets/Capture.JPG';
 import { getBodyText } from '../config/templateConfigs';
 
@@ -32,7 +32,8 @@ export const generateCertificatePdfBlob = async (
   imagePath?: string,
   templateId?: string,
   contentId?: string,
-  customBodyTemplate?: string
+  customBodyTemplate?: string,
+  signatures: SignatureImage[] = []
 ): Promise<Blob> => {
   const imageToUse = imagePath || certificateBackground;
   const img = await loadImage(imageToUse);
@@ -115,6 +116,20 @@ export const generateCertificatePdfBlob = async (
   // increase line spacing to accommodate larger font
   lines.forEach((text, index) => ctx.fillText(text, img.width * 0.5, img.height * 0.405 + index * 32));
 
+  if (signatures.length) {
+    const signatureAreaWidth = img.width * 0.78;
+    const slotWidth = signatureAreaWidth / signatures.length;
+    const maxSignatureWidth = Math.min(img.width * 0.22, slotWidth * 0.78);
+    const signatureImages = await Promise.all(signatures.map((signature) => loadImage(signature.dataUrl)));
+    signatureImages.forEach((signatureImage, index) => {
+      const scale = Math.min(maxSignatureWidth / signatureImage.width, (img.height * 0.10) / signatureImage.height);
+      const width = signatureImage.width * scale;
+      const height = signatureImage.height * scale;
+      const x = img.width * 0.11 + slotWidth * index + (slotWidth - width) / 2;
+      ctx.drawImage(signatureImage, x, img.height * 0.68, width, height);
+    });
+  }
+
   const pdf = new jsPDF({ orientation: 'landscape', unit: 'px', format: [img.width, img.height] });
   pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, img.width, img.height);
   return pdf.output('blob');
@@ -126,7 +141,8 @@ export const generateCertificatePdf = async (
   imagePath?: string,
   templateId?: string,
   contentId?: string,
-  customBodyTemplate?: string
+  customBodyTemplate?: string,
+  signatures: SignatureImage[] = []
 ): Promise<Blob> => {
-  return generateCertificatePdfBlob(student, fields, imagePath, templateId, contentId, customBodyTemplate);
+  return generateCertificatePdfBlob(student, fields, imagePath, templateId, contentId, customBodyTemplate, signatures);
 };

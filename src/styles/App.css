@@ -194,6 +194,28 @@ th {
   text-align: center;
 }
 
+.signature-overlay {
+  position: absolute;
+  left: 11%;
+  top: 68%;
+  width: 78%;
+  height: 20%;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  gap: 2%;
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+.signature-overlay img {
+  display: block;
+  width: calc(78% / var(--signature-count));
+  max-width: 22%;
+  height: 100%;
+  object-fit: contain;
+}
+
 .certificate-body {
   top: 46%;
   width: 37%;

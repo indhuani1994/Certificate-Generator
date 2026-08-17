@@ -3,12 +3,13 @@ import Header from './components/Header/Header';
 import ExcelUploader from './components/ExcelUploader/ExcelUploader';
 import StudentTable from './components/StudentTable/StudentTable';
 import CertificatePreview from './components/CertificatePreview/CertificatePreview';
+import SignatureSelector from './components/SignatureSelector/SignatureSelector';
 import DownloadButtons from './components/DownloadButtons/DownloadButtons';
 import ResetButton from './components/ResetButton/ResetButton';
 import TemplateSelector from './components/TemplateSelector/TemplateSelector';
 import ContentSelector from './components/ContentSelector/ContentSelector';
 import { parseExcelFile } from './services/excelParser';
-import { CertificateData, StudentRecord, ValidationResult, Template, TemplateContent } from './types';
+import { CertificateData, StudentRecord, ValidationResult, Template, TemplateContent, SignatureImage } from './types';
 import { validateRecords } from './utils/validationUtils';
 import { formatDuration, formatDisplayDate } from './utils/dateUtils';
 import { generateCertificatePdf, generateCertificatePdfBlob } from './services/certificateGenerator';
@@ -31,6 +32,7 @@ function App() {
   const [progress, setProgress] = useState<number | null>(null);
   const [errorMessage, setErrorMessage] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [signatures, setSignatures] = useState<SignatureImage[]>([]);
 
   const hasValidRecords = useMemo(() => students.some((r) => r.status === 'Valid'), [students]);
   const selectedStudent = students[selectedIndex] || null;
@@ -41,7 +43,25 @@ function App() {
     setSelectedContent(null);
     setSelectedContentId(null);
     setSelectedContentTemplateId(null);
+    setSignatures([]);
     setErrorMessage('');
+  };
+
+  const handleAddSignatures = (files: FileList) => {
+    Array.from(files).forEach((file) => {
+      if (!file.type.startsWith('image/')) {
+        setErrorMessage('Signature files must be images.');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => setSignatures((current) => [...current, {
+        id: `${file.name}-${file.size}-${file.lastModified}-${Math.random()}`,
+        name: file.name,
+        dataUrl: String(reader.result)
+      }]);
+      reader.onerror = () => setErrorMessage(`Could not read signature image "${file.name}".`);
+      reader.readAsDataURL(file);
+    });
   };
 
   const handleUploadTemplate = (file: File) => {
@@ -150,7 +170,8 @@ function App() {
           selectedTemplate.imagePath,
           selectedContentTemplateId || selectedTemplate.id,
           selectedBodyContentId || undefined,
-          selectedContent.bodyTemplate
+          selectedContent.bodyTemplate,
+          signatures
         );
         outFiles.push({ name: student.fileName, blob });
       }
@@ -175,7 +196,8 @@ function App() {
         selectedTemplate.imagePath,
         selectedContentTemplateId || selectedTemplate.id,
         selectedBodyContentId || undefined,
-        selectedContent.bodyTemplate
+        selectedContent.bodyTemplate,
+        signatures
       );
       saveAs(blob, selectedStudent.fileName);
     } catch (e) {
@@ -194,6 +216,7 @@ function App() {
     setErrorMessage('');
     setProgress(null);
     setIsGenerating(false);
+    setSignatures([]);
   };
 
   return (
@@ -218,6 +241,7 @@ function App() {
             onSelectContent={handleSelectContent}
             onEnterManualContent={handleEnterManualContent}
           />
+          {selectedTemplate && <SignatureSelector signatures={signatures} onAdd={handleAddSignatures} onRemove={(id) => setSignatures((current) => current.filter((signature) => signature.id !== id))} />}
         </section>
 
         <section className="upload-section">
@@ -243,6 +267,7 @@ function App() {
             templateId={selectedContentTemplateId || selectedTemplate?.id}
           contentId={selectedBodyContentId || undefined}
           bodyTemplate={selectedContent?.bodyTemplate}
+          signatures={signatures}
           />
         </section>
 
