@@ -23,6 +23,8 @@ const CertificatePreview = ({
   bodyTemplate,
   signatures = [],
   layout = {
+    name: { left: 50, top: 24, fontFamily: 'Georgia' },
+    regNo: { left: 50, top: 31, fontFamily: 'Georgia' },
     heading: { text: '', fontSize: 38, fontFamily: 'Georgia', color: '#0D095C', left: 50, top: 15 },
     content: { fontSize: 22, left: 50, top: 36, width: 80 },
     signature: { size: 10, left: 11, top: 68 }
@@ -81,8 +83,8 @@ const CertificatePreview = ({
           <img src={imageSource} alt="Certificate background" className="certificate-background" />
           <div className="certificate-variable-area certificate2-variable-area" />
           {layout.heading.text.trim() && <div className="certificate-text certificate-heading" style={{ left: `${layout.heading.left}%`, top: `${layout.heading.top}%`, fontSize: `${layout.heading.fontSize}px`, fontFamily: layout.heading.fontFamily, color: layout.heading.color }}>{layout.heading.text}</div>}
-          <div className="certificate-text certificate-name" style={fields.name}>{student.name}</div>
-          <div className="certificate-text certificate-regno" style={fields.regNo}>{`(REG. NO: ${student.regNo})`}</div>
+          <div className="certificate-text certificate-name" style={{ ...fields.name, left: `${layout.name.left}%`, top: `${layout.name.top}%`, fontFamily: layout.name.fontFamily }}>{student.name}</div>
+          <div className="certificate-text certificate-regno" style={{ ...fields.regNo, left: `${layout.regNo.left}%`, top: `${layout.regNo.top}%`, fontFamily: layout.regNo.fontFamily }}>{`(REG. NO: ${student.regNo})`}</div>
           <p>   </p>
           <div className="certificate-text certificate2-body" style={{ left: `${layout.content.left - layout.content.width / 2}%`, top: `${layout.content.top}%`, width: `${layout.content.width}%`, fontSize: `${layout.content.fontSize}px` }}>
             {bodyText}

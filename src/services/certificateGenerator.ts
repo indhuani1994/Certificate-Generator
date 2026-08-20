@@ -49,6 +49,8 @@ export const generateCertificatePdfBlob = async (
   const navy = '#0D095C';
   const gold = '#A27E16';
   const certificateLayout: CertificateLayout = layout || {
+    name: { left: 50, top: 24, fontFamily: 'Georgia' },
+    regNo: { left: 50, top: 31, fontFamily: 'Georgia' },
     heading: { text: '', fontSize: 38, fontFamily: 'Georgia', color: navy, left: 50, top: 15 },
     content: { fontSize: 22, left: 50, top: 36, width: 80 },
     signature: { size: 10, left: 11, top: 68 }
@@ -83,8 +85,8 @@ export const generateCertificatePdfBlob = async (
 
   ctx.textAlign = 'center';
   ctx.fillStyle = navy;
-  ctx.font = 'bold 36px Georgia';
-  ctx.fillText(student.name, img.width * 0.5, img.height * 0.27);
+  ctx.font = `bold 36px "${certificateLayout.name.fontFamily}"`;
+  ctx.fillText(student.name, img.width * certificateLayout.name.left / 100, img.height * (certificateLayout.name.top / 100 + 0.03));
   ctx.strokeStyle = gold;
   ctx.lineWidth = 2;
   ctx.beginPath();
@@ -93,8 +95,8 @@ export const generateCertificatePdfBlob = async (
   ctx.stroke();
 
   ctx.fillStyle = gold;
-  ctx.font = 'bold 28px Georgia';
-  ctx.fillText(`(REG. NO: ${student.regNo})`, img.width * 0.5, img.height * 0.335);
+  ctx.font = `bold 28px "${certificateLayout.regNo.fontFamily}"`;
+  ctx.fillText(`(REG. NO: ${student.regNo})`, img.width * certificateLayout.regNo.left / 100, img.height * (certificateLayout.regNo.top / 100 + 0.035));
 
   ctx.fillStyle = navy;
   ctx.font = `${certificateLayout.content.fontSize}px Georgia`;

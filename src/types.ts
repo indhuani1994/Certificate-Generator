@@ -51,6 +51,8 @@ export interface SignatureImage {
 }
 
 export interface CertificateLayout {
+  name: { left: number; top: number; fontFamily: string };
+  regNo: { left: number; top: number; fontFamily: string };
   heading: {
     text: string;
     fontSize: number;

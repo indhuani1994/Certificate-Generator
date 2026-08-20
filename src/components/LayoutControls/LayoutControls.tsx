@@ -9,11 +9,11 @@ interface LayoutControlsProps {
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 
 function LayoutControls({ layout, onChange }: LayoutControlsProps) {
-  const update = (section: 'heading' | 'content' | 'signature', values: Record<string, string | number>) => {
+  const update = (section: 'name' | 'regNo' | 'heading' | 'content' | 'signature', values: Record<string, string | number>) => {
     onChange({ ...layout, [section]: { ...layout[section], ...values } });
   };
 
-  const move = (section: 'heading' | 'content' | 'signature', amount: number) => {
+  const move = (section: 'name' | 'regNo' | 'heading' | 'content' | 'signature', amount: number) => {
     const current = layout[section];
     update(section, { left: clamp(current.left + amount, 3, 97) });
   };
@@ -22,6 +22,38 @@ function LayoutControls({ layout, onChange }: LayoutControlsProps) {
     <div className="layout-controls">
       <h2>Certificate Layout</h2>
       <p className="layout-help">Set the text and image positions before generating certificates.</p>
+
+      <div className="layout-section">
+        <h3>Name position</h3>
+        <label className="standalone-control">Font style<select value={layout.name.fontFamily} onChange={(e) => update('name', { fontFamily: e.target.value })}>
+          <option value="Georgia">Georgia</option>
+          <option value="Arial">Arial</option>
+          <option value="Times New Roman">Times New Roman</option>
+          <option value="Verdana">Verdana</option>
+          <option value="Courier New">Courier New</option>
+          <option value="Trebuchet MS">Trebuchet MS</option>
+        </select></label>
+        <div className="control-grid">
+          <label>Vertical position: {layout.name.top}%<input type="range" min="5" max="60" value={layout.name.top} onChange={(e) => update('name', { top: Number(e.target.value) })} /></label>
+        </div>
+        <div className="position-controls"><span>Horizontal position: {layout.name.left}%</span><button type="button" onClick={() => move('name', -1)}>← Left</button><button type="button" onClick={() => move('name', 1)}>Right →</button></div>
+      </div>
+
+      <div className="layout-section">
+        <h3>Register number position</h3>
+        <label className="standalone-control">Font style<select value={layout.regNo.fontFamily} onChange={(e) => update('regNo', { fontFamily: e.target.value })}>
+          <option value="Georgia">Georgia</option>
+          <option value="Arial">Arial</option>
+          <option value="Times New Roman">Times New Roman</option>
+          <option value="Verdana">Verdana</option>
+          <option value="Courier New">Courier New</option>
+          <option value="Trebuchet MS">Trebuchet MS</option>
+        </select></label>
+        <div className="control-grid">
+          <label>Vertical position: {layout.regNo.top}%<input type="range" min="5" max="60" value={layout.regNo.top} onChange={(e) => update('regNo', { top: Number(e.target.value) })} /></label>
+        </div>
+        <div className="position-controls"><span>Horizontal position: {layout.regNo.left}%</span><button type="button" onClick={() => move('regNo', -1)}>← Left</button><button type="button" onClick={() => move('regNo', 1)}>Right →</button></div>
+      </div>
 
       <div className="layout-section">
         <h3>Heading</h3>

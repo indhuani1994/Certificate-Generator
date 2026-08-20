@@ -20,6 +20,8 @@ import { getAllTemplates } from './config/templateConfigs';
 import './styles/App.css';
 
 const defaultLayout: CertificateLayout = {
+  name: { left: 50, top: 24, fontFamily: 'Georgia' },
+  regNo: { left: 50, top: 31, fontFamily: 'Georgia' },
   heading: { text: '', fontSize: 38, fontFamily: 'Georgia', color: '#0D095C', left: 50, top: 15 },
   content: { fontSize: 22, left: 50, top: 36, width: 80 },
   signature: { size: 10, left: 11, top: 68 }
