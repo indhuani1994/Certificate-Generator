@@ -50,6 +50,28 @@ export interface SignatureImage {
   dataUrl: string;
 }
 
+export interface CertificateLayout {
+  heading: {
+    text: string;
+    fontSize: number;
+    fontFamily: string;
+    color: string;
+    left: number;
+    top: number;
+  };
+  content: {
+    fontSize: number;
+    left: number;
+    top: number;
+    width: number;
+  };
+  signature: {
+    size: number;
+    left: number;
+    top: number;
+  };
+}
+
 export interface Template {
   id: string;
   name: string;

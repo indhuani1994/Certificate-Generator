@@ -8,8 +8,9 @@ import DownloadButtons from './components/DownloadButtons/DownloadButtons';
 import ResetButton from './components/ResetButton/ResetButton';
 import TemplateSelector from './components/TemplateSelector/TemplateSelector';
 import ContentSelector from './components/ContentSelector/ContentSelector';
+import LayoutControls from './components/LayoutControls/LayoutControls';
 import { parseExcelFile } from './services/excelParser';
-import { CertificateData, StudentRecord, ValidationResult, Template, TemplateContent, SignatureImage } from './types';
+import { StudentRecord, ValidationResult, Template, TemplateContent, SignatureImage, CertificateLayout } from './types';
 import { validateRecords } from './utils/validationUtils';
 import { formatDuration, formatDisplayDate } from './utils/dateUtils';
 import { generateCertificatePdf, generateCertificatePdfBlob } from './services/certificateGenerator';
@@ -17,6 +18,12 @@ import { generateZip } from './services/zipGenerator';
 import { saveAs } from 'file-saver';
 import { getAllTemplates } from './config/templateConfigs';
 import './styles/App.css';
+
+const defaultLayout: CertificateLayout = {
+  heading: { text: '', fontSize: 38, fontFamily: 'Georgia', color: '#0D095C', left: 50, top: 15 },
+  content: { fontSize: 22, left: 50, top: 36, width: 80 },
+  signature: { size: 10, left: 11, top: 68 }
+};
 
 function App() {
   const [templates] = useState<Template[]>(getAllTemplates());
@@ -33,6 +40,7 @@ function App() {
   const [errorMessage, setErrorMessage] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [signatures, setSignatures] = useState<SignatureImage[]>([]);
+  const [layout, setLayout] = useState<CertificateLayout>(defaultLayout);
 
   const hasValidRecords = useMemo(() => students.some((r) => r.status === 'Valid'), [students]);
   const selectedStudent = students[selectedIndex] || null;
@@ -171,7 +179,8 @@ function App() {
           selectedContentTemplateId || selectedTemplate.id,
           selectedBodyContentId || undefined,
           selectedContent.bodyTemplate,
-          signatures
+          signatures,
+          layout
         );
         outFiles.push({ name: student.fileName, blob });
       }
@@ -197,7 +206,8 @@ function App() {
         selectedContentTemplateId || selectedTemplate.id,
         selectedBodyContentId || undefined,
         selectedContent.bodyTemplate,
-        signatures
+        signatures,
+        layout
       );
       saveAs(blob, selectedStudent.fileName);
     } catch (e) {
@@ -217,6 +227,7 @@ function App() {
     setProgress(null);
     setIsGenerating(false);
     setSignatures([]);
+    setLayout(defaultLayout);
   };
 
   return (
@@ -242,6 +253,7 @@ function App() {
             onEnterManualContent={handleEnterManualContent}
           />
           {selectedTemplate && <SignatureSelector signatures={signatures} onAdd={handleAddSignatures} onRemove={(id) => setSignatures((current) => current.filter((signature) => signature.id !== id))} />}
+          {selectedTemplate && <LayoutControls layout={layout} onChange={setLayout} />}
         </section>
 
         <section className="upload-section">
@@ -268,6 +280,7 @@ function App() {
           contentId={selectedBodyContentId || undefined}
           bodyTemplate={selectedContent?.bodyTemplate}
           signatures={signatures}
+          layout={layout}
           />
         </section>
 

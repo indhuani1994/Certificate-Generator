@@ -1,4 +1,4 @@
-import { StudentRecord, FieldPosition, SignatureImage } from '../../types';
+import { StudentRecord, FieldPosition, SignatureImage, CertificateLayout } from '../../types';
 import certificateFields from '../../config/certificateFields';
 import certificateBackground from '../../assets/Capture.JPG';
 import { getBodyText } from '../../config/templateConfigs';
@@ -11,6 +11,7 @@ interface CertificatePreviewProps {
   contentId?: string;
   bodyTemplate?: string;
   signatures?: SignatureImage[];
+  layout?: CertificateLayout;
 }
 
 const CertificatePreview = ({ 
@@ -20,7 +21,12 @@ const CertificatePreview = ({
   templateId = 'certificate',
   contentId = 'standard',
   bodyTemplate,
-  signatures = []
+  signatures = [],
+  layout = {
+    heading: { text: '', fontSize: 38, fontFamily: 'Georgia', color: '#0D095C', left: 50, top: 15 },
+    content: { fontSize: 22, left: 50, top: 36, width: 80 },
+    signature: { size: 10, left: 11, top: 68 }
+  }
 }: CertificatePreviewProps) => {
   const fields = customFields || certificateFields;
   const imageSource = templateImagePath || certificateBackground;
@@ -74,14 +80,15 @@ const CertificatePreview = ({
         <div className="certificate-image-wrapper">
           <img src={imageSource} alt="Certificate background" className="certificate-background" />
           <div className="certificate-variable-area certificate2-variable-area" />
+          {layout.heading.text.trim() && <div className="certificate-text certificate-heading" style={{ left: `${layout.heading.left}%`, top: `${layout.heading.top}%`, fontSize: `${layout.heading.fontSize}px`, fontFamily: layout.heading.fontFamily, color: layout.heading.color }}>{layout.heading.text}</div>}
           <div className="certificate-text certificate-name" style={fields.name}>{student.name}</div>
           <div className="certificate-text certificate-regno" style={fields.regNo}>{`(REG. NO: ${student.regNo})`}</div>
           <p>   </p>
-          <div className="certificate-text certificate2-body">
+          <div className="certificate-text certificate2-body" style={{ left: `${layout.content.left - layout.content.width / 2}%`, top: `${layout.content.top}%`, width: `${layout.content.width}%`, fontSize: `${layout.content.fontSize}px` }}>
             {bodyText}
           </div>
-          <div className="signature-overlay" style={{ '--signature-count': signatures.length } as React.CSSProperties}>
-            {signatures.map((signature) => <img key={signature.id} src={signature.dataUrl} alt={signature.name} />)}
+          <div className="signature-overlay" style={{ left: `${layout.signature.left}%`, top: `${layout.signature.top}%`, width: `${100 - layout.signature.left - 5}%`, height: `${layout.signature.size}%`, '--signature-count': signatures.length } as React.CSSProperties}>
+            {signatures.map((signature) => <img key={signature.id} src={signature.dataUrl} alt={signature.name} style={{ maxWidth: `${layout.signature.size}%` }} />)}
           </div>
         </div>
       </div>

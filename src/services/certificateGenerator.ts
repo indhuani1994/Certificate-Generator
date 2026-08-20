@@ -1,6 +1,6 @@
 import { jsPDF } from 'jspdf';
 import { saveAs } from 'file-saver';
-import { StudentRecord, FieldPosition, SignatureImage } from '../types';
+import { StudentRecord, FieldPosition, SignatureImage, CertificateLayout } from '../types';
 import certificateBackground from '../assets/Capture.JPG';
 import { getBodyText } from '../config/templateConfigs';
 
@@ -33,7 +33,8 @@ export const generateCertificatePdfBlob = async (
   templateId?: string,
   contentId?: string,
   customBodyTemplate?: string,
-  signatures: SignatureImage[] = []
+  signatures: SignatureImage[] = [],
+  layout?: CertificateLayout
 ): Promise<Blob> => {
   const imageToUse = imagePath || certificateBackground;
   const img = await loadImage(imageToUse);
@@ -47,6 +48,18 @@ export const generateCertificatePdfBlob = async (
   
   const navy = '#0D095C';
   const gold = '#A27E16';
+  const certificateLayout: CertificateLayout = layout || {
+    heading: { text: '', fontSize: 38, fontFamily: 'Georgia', color: navy, left: 50, top: 15 },
+    content: { fontSize: 22, left: 50, top: 36, width: 80 },
+    signature: { size: 10, left: 11, top: 68 }
+  };
+
+  if (certificateLayout.heading.text.trim()) {
+    ctx.textAlign = 'center';
+    ctx.fillStyle = certificateLayout.heading.color;
+    ctx.font = `bold ${certificateLayout.heading.fontSize}px "${certificateLayout.heading.fontFamily}"`;
+    ctx.fillText(certificateLayout.heading.text, img.width * certificateLayout.heading.left / 100, img.height * certificateLayout.heading.top / 100);
+  }
 
   // Use provided fields or fall back to defaults
   const fieldPositions = fields || {
@@ -84,7 +97,7 @@ export const generateCertificatePdfBlob = async (
   ctx.fillText(`(REG. NO: ${student.regNo})`, img.width * 0.5, img.height * 0.335);
 
   ctx.fillStyle = navy;
-  ctx.font = '22px Georgia';
+  ctx.font = `${certificateLayout.content.fontSize}px Georgia`;
   
   // Generate body text based on template or use default
   const body = templateId && contentId
@@ -100,7 +113,7 @@ export const generateCertificatePdfBlob = async (
       )
     : `has successfully completed the ${student.course} program at our Madurai center, conducted by Scope Tech Software Solution, with a duration from ${student.startDateFormatted} to ${student.endDateFormatted}. The participant's performance during this course was outstanding and exceeded our expectations.`;
   
-  const maxWidth = img.width * 0.80;
+  const maxWidth = img.width * certificateLayout.content.width / 100;
   const lines: string[] = [];
   let line = '';
   body.split(' ').forEach((word) => {
@@ -114,19 +127,19 @@ export const generateCertificatePdfBlob = async (
   });
   if (line) lines.push(line);
   // increase line spacing to accommodate larger font
-  lines.forEach((text, index) => ctx.fillText(text, img.width * 0.5, img.height * 0.405 + index * 32));
+  lines.forEach((text, index) => ctx.fillText(text, img.width * certificateLayout.content.left / 100, img.height * certificateLayout.content.top / 100 + index * (certificateLayout.content.fontSize * 1.45)));
 
   if (signatures.length) {
-    const signatureAreaWidth = img.width * 0.78;
+    const signatureAreaWidth = img.width * (100 - certificateLayout.signature.left - 5) / 100;
     const slotWidth = signatureAreaWidth / signatures.length;
-    const maxSignatureWidth = Math.min(img.width * 0.22, slotWidth * 0.78);
+    const maxSignatureWidth = Math.min(img.width * certificateLayout.signature.size / 100, slotWidth * 0.78);
     const signatureImages = await Promise.all(signatures.map((signature) => loadImage(signature.dataUrl)));
     signatureImages.forEach((signatureImage, index) => {
-      const scale = Math.min(maxSignatureWidth / signatureImage.width, (img.height * 0.10) / signatureImage.height);
+      const scale = Math.min(maxSignatureWidth / signatureImage.width, (img.height * certificateLayout.signature.size / 100) / signatureImage.height);
       const width = signatureImage.width * scale;
       const height = signatureImage.height * scale;
-      const x = img.width * 0.11 + slotWidth * index + (slotWidth - width) / 2;
-      ctx.drawImage(signatureImage, x, img.height * 0.68, width, height);
+      const x = img.width * certificateLayout.signature.left / 100 + slotWidth * index + (slotWidth - width) / 2;
+      ctx.drawImage(signatureImage, x, img.height * certificateLayout.signature.top / 100, width, height);
     });
   }
 
@@ -142,7 +155,8 @@ export const generateCertificatePdf = async (
   templateId?: string,
   contentId?: string,
   customBodyTemplate?: string,
-  signatures: SignatureImage[] = []
+  signatures: SignatureImage[] = [],
+  layout?: CertificateLayout
 ): Promise<Blob> => {
-  return generateCertificatePdfBlob(student, fields, imagePath, templateId, contentId, customBodyTemplate, signatures);
+  return generateCertificatePdfBlob(student, fields, imagePath, templateId, contentId, customBodyTemplate, signatures, layout);
 };
